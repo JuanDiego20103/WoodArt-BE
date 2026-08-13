@@ -81,18 +81,68 @@ def eliminar_producto(id_producto):
 
 @productos_bp.route("", methods=["GET"])
 def listar_productos():
-    productos = session.query(Producto).all()
-    productos_list = [{
-        "id": producto.id_producto, 
-        "nombre": producto.nombre, 
-        "descripcion": producto.descripcion, 
-        "precio": producto.precio, 
-        "stock": producto.stock, 
-        "material": producto.material, 
-        "color": producto.color,
-        "imagen_principal": producto.imagen_principal,
-        "activo": producto.activo, 
-        "id_categoria": producto.id_categoria
-    } for producto in productos]
 
-    return jsonify(productos_list), 200
+    # Página actual
+    page = request.args.get("page", 1, type=int)
+
+    # Cantidad de productos por página
+    per_page = request.args.get("per_page", 8, type=int)
+
+    # Categoría opcional
+    id_categoria = request.args.get("id_categoria", type=int)
+
+    # Evitar valores inválidos
+    if page < 1:
+        page = 1
+
+    if per_page < 1:
+        per_page = 8
+
+    # Consulta base
+    query = session.query(Producto)
+
+    # Filtrar por categoría si se solicita
+    if id_categoria:
+        query = query.filter(
+            Producto.id_categoria == id_categoria
+        )
+
+    # Cantidad total de productos
+    total_productos = query.count()
+
+    # Calcular cantidad de páginas
+    total_paginas = (total_productos + per_page - 1) // per_page
+
+    # Obtener solamente los productos de la página actual
+    productos = query.offset(
+        (page - 1) * per_page
+    ).limit(
+        per_page
+    ).all()
+
+    productos_list = [
+
+        {
+            "id": producto.id_producto,
+            "nombre": producto.nombre,
+            "descripcion": producto.descripcion,
+            "precio": producto.precio,
+            "stock": producto.stock,
+            "material": producto.material,
+            "color": producto.color,
+            "imagen_principal": producto.imagen_principal,
+            "activo": producto.activo,
+            "id_categoria": producto.id_categoria
+        }
+
+        for producto in productos
+
+    ]
+
+    return jsonify({
+        "productos": productos_list,
+        "pagina": page,
+        "por_pagina": per_page,
+        "total_productos": total_productos,
+        "total_paginas": total_paginas
+    }), 200

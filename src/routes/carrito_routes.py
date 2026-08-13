@@ -1,45 +1,74 @@
 from flask import Blueprint, request, jsonify, session
 from src.models.carrito import Carrito
+from src.models.productos import Producto
+from src.models import session
 
 carrito_bp = Blueprint('carrito', __name__)
 
-@carrito_bp.route('', methods=['POST'])
+@carrito_bp.route("", methods=["POST"])
 def agregar_al_carrito():
-    data = request.get_json()
-    id_usuario = session.get('id_usuario')
-    
-    if not id_usuario:
-        return jsonify({'error': 'Usuario no autenticado'}), 401
-    
-    nuevo_item = Carrito(
-        cantidad=data['cantidad'],
-        id_usuario=id_usuario,
-        id_producto=data['id_producto']
-    )
-    
-    # Aquí deberías agregar el nuevo_item a la base de datos y hacer commit
-    # session.add(nuevo_item)
-    # session.commit()
-    
-    return jsonify({'message': 'Producto agregado al carrito'}), 201
 
-@carrito_bp.route('', methods=['GET'])
-def obtener_carrito():
-    id_usuario = session.get('id_usuario')
-    
+    data = request.get_json()
+
+    id_usuario = data.get("id_usuario")
+    id_producto = data.get("id_producto")
+    cantidad = data.get("cantidad", 1)
+
     if not id_usuario:
-        return jsonify({'error': 'Usuario no autenticado'}), 401
-    
-    # Aquí deberías consultar la base de datos para obtener los items del carrito del usuario
-    # items_carrito = session.query(Carrito).filter_by(id_usuario=id_usuario).all()
-    
-    # Simulación de respuesta
-    items_carrito = [
-        {'id_producto': 1, 'cantidad': 2},
-        {'id_producto': 2, 'cantidad': 1}
-    ]
-    
-    return jsonify(items_carrito), 200
+        return jsonify({
+            "error": "Usuario no autenticado"
+        }), 401
+
+    if not id_producto:
+        return jsonify({
+            "error": "Producto no especificado"
+        }), 400
+
+    nuevo_item = Carrito(
+        cantidad=cantidad,
+        id_usuario=id_usuario,
+        id_producto=id_producto
+    )
+
+    session.add(nuevo_item)
+    session.commit()
+
+    return jsonify({
+        "message": "Producto agregado al carrito"
+    }), 201
+
+@carrito_bp.route("", methods=["GET"])
+def obtener_carrito():
+
+    id_usuario = request.args.get("id_usuario", type=int)
+
+    if not id_usuario:
+        return jsonify({
+            "error": "Usuario no autenticado"
+        }), 401
+
+    items_carrito = session.query(Carrito, Producto).join(
+        Producto,
+        Carrito.id_producto == Producto.id_producto
+    ).filter(
+        Carrito.id_usuario == id_usuario
+    ).all()
+
+    carrito = []
+
+    for item, producto in items_carrito:
+
+        carrito.append({
+            "id_carrito": item.id_carrito,
+            "id_producto": producto.id_producto,
+            "nombre": producto.nombre,
+            "precio": producto.precio,
+            "cantidad": item.cantidad,
+            "imagen_principal": producto.imagen_principal,
+            "subtotal": producto.precio * item.cantidad
+        })
+
+    return jsonify(carrito), 200
 
 @carrito_bp.route('/<int:id_producto>', methods=['DELETE'])
 def eliminar_del_carrito(id_producto):
