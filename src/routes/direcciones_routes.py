@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify , session as flask_session
 from src.models.direcciones import Direccion
 from src.models import session as db_session
+from src.utils.auth import token_required, rol_required
 
 direcciones_bp = Blueprint('direcciones', __name__)
 
 @direcciones_bp.route("",methods=["POST"])
+@token_required
 def crear_direccion():
 
 
@@ -35,6 +37,7 @@ def crear_direccion():
         return jsonify({"error": str(e)}), 500
     
 @direcciones_bp.route("",methods=["GET"])
+@token_required
 def obtener_direcciones():
     if "id_usuario" not in flask_session:
         return jsonify({"error": "Usuario no autenticado"}), 401
@@ -43,6 +46,7 @@ def obtener_direcciones():
     return jsonify({"direcciones": [dir.to_dict() for dir in direcciones]}), 200
 
 @direcciones_bp.route("/<int:id_direccion>",methods=["GET"])
+@token_required
 def obtener_direccion(id_direccion):
     if "id_usuario" not in flask_session:
         return jsonify({"error": "Usuario no autenticado"}), 401
@@ -54,6 +58,7 @@ def obtener_direccion(id_direccion):
     return jsonify({"direccion": direccion.to_dict()}), 200
 
 @direcciones_bp.route("/<int:id_direccion>",methods=["PUT"])
+@token_required
 def actualizar_direccion(id_direccion):
     if "id_usuario" not in flask_session:
         return jsonify({"error": "Usuario no autenticado"}), 401
@@ -83,6 +88,7 @@ def actualizar_direccion(id_direccion):
         return jsonify({"error": str(e)}), 500
     
 @direcciones_bp.route("/<int:id_direccion>",methods=["DELETE"])
+@token_required
 def eliminar_direccion(id_direccion):
     if "id_usuario" not in flask_session:
         return jsonify({"error": "Usuario no autenticado"}), 401

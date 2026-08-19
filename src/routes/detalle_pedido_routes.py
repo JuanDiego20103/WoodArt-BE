@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.models.detalle_pedido import DetallePedido
+from src.utils.auth import token_required, rol_required
 
 detalle_pedido_bp = Blueprint('detalle_pedido_bp', __name__)
 

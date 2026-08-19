@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Text, Boolean, DateTime, Enum, func
+from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from src.models import Base
 

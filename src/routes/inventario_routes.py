@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.models.inventario import MovimientoInventario
+from src.utils.auth import token_required, rol_required
 
 inventario_bp = Blueprint('inventario', __name__)
 

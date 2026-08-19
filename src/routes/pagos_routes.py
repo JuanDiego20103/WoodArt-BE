@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.models.pagos import Pago
+from src.utils.auth import token_required, rol_required
 
 pagos_bp = Blueprint('pagos', __name__)
 

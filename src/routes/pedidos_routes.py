@@ -1,9 +1,11 @@
 from flask import Blueprint, request, jsonify
 from src.models.pedidos import Pedido
+from src.utils.auth import token_required, rol_required
 
 pedidos_bp = Blueprint("pedidos",__name__)
 
 @pedidos_bp.route("/pedidos",methods=["POST"])
+@token_required
 def crear_pedido():
     data = request.get_json()
     nuevo_pedido = Pedido(
@@ -56,6 +58,7 @@ def actualizar_pedido(id_pedido):
     return jsonify({"message": "Pedido actualizado exitosamente", "id_pedido": pedido.id_pedido}), 200
 
 @pedidos_bp.route("/pedidos", methods=["GET"])
+@token_required
 def listar_pedidos():
     pedidos = Pedido.query.all()
     pedidos_list = []

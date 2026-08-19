@@ -2,10 +2,12 @@ from flask import Blueprint, request, jsonify, session
 from src.models.carrito import Carrito
 from src.models.productos import Producto
 from src.models import session
+from src.utils.auth import token_required, rol_required
 
 carrito_bp = Blueprint('carrito', __name__)
 
 @carrito_bp.route("", methods=["POST"])
+@token_required
 def agregar_al_carrito():
 
     data = request.get_json()
@@ -38,6 +40,7 @@ def agregar_al_carrito():
     }), 201
 
 @carrito_bp.route("", methods=["GET"])
+@token_required
 def obtener_carrito():
 
     id_usuario = request.args.get("id_usuario", type=int)
@@ -71,6 +74,7 @@ def obtener_carrito():
     return jsonify(carrito), 200
 
 @carrito_bp.route('/<int:id_producto>', methods=['DELETE'])
+@token_required
 def eliminar_del_carrito(id_producto):
     id_usuario = session.get('id_usuario')
     
@@ -86,6 +90,7 @@ def eliminar_del_carrito(id_producto):
     return jsonify({'message': 'Producto eliminado del carrito'}), 200
 
 @carrito_bp.route('/<int:id_producto>', methods=['PUT'])
+@token_required
 def actualizar_cantidad(id_producto):
     data = request.get_json()
     id_usuario = session.get('id_usuario')
@@ -102,6 +107,7 @@ def actualizar_cantidad(id_producto):
     return jsonify({'message': 'Cantidad actualizada en el carrito'}), 200
 
 @carrito_bp.route('/total', methods=['GET'])
+@token_required
 def obtener_total_carrito():
     id_usuario = session.get('id_usuario')
     

@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from src.models.categorias import Categoria
 from src.models import session
+from src.utils.auth import token_required, rol_required
 
 
 categorias_bp = Blueprint("categorias", __name__)

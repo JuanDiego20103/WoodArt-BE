@@ -1,6 +1,18 @@
 from flask import Blueprint, request, jsonify
 from src.models.usuarios import Usuario
+from werkzeug.security import generate_password_hash, check_password_hash
 from src.models import session
+import os
+import jwt
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+from src.utils.auth import token_required, rol_required
+
+load_dotenv()
+
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+
+print("JWT_SECRET_KEY cargada:", JWT_SECRET_KEY is not None)
 
 usuarios_bp = Blueprint("usuarios", __name__)
 
@@ -49,16 +61,21 @@ def crear_usuario():
             "error": "El correo electrónico ya está registrado"
         }), 409
 
+    if usuario_existente:
+        return jsonify({
+            "error": "El correo electrónico ya está registrado"
+        }), 409
+
+    password_hash = generate_password_hash(data["password"])
+
     nuevo_usuario = Usuario(
-
-        nombre=data["nombre"],
-        apellido=data["apellido"],
-        email=data["email"],
-        telefono=data.get("telefono"),
-        password=data["password"],
-        rol=data.get("rol", "cliente")
-
-    )
+    nombre=data["nombre"],
+    apellido=data["apellido"],
+    email=data["email"],
+    telefono=data.get("telefono"),
+    password=password_hash,
+    rol=data.get("rol", "cliente")
+)
 
     session.add(nuevo_usuario)
     session.commit()
@@ -81,7 +98,9 @@ def crear_usuario():
 # =========================
 
 @usuarios_bp.route("/<int:id_usuario>", methods=["GET"])
+@token_required
 def obtener_usuario(id_usuario):
+    
 
     usuario = session.query(Usuario).filter(
         Usuario.id_usuario == id_usuario
@@ -107,6 +126,7 @@ def obtener_usuario(id_usuario):
 # =========================
 
 @usuarios_bp.route("/<int:id_usuario>", methods=["PUT"])
+@token_required
 def actualizar_usuario(id_usuario):
 
     usuario = session.query(Usuario).filter(
@@ -140,6 +160,8 @@ def actualizar_usuario(id_usuario):
 # =========================
 
 @usuarios_bp.route("/<int:id_usuario>", methods=["DELETE"])
+@token_required
+@rol_required("admin")
 def eliminar_usuario(id_usuario):
 
     usuario = session.query(Usuario).filter(
@@ -164,6 +186,8 @@ def eliminar_usuario(id_usuario):
 # =========================
 
 @usuarios_bp.route("/", methods=["GET"])
+@token_required
+@rol_required("admin")
 def listar_usuarios():
 
     usuarios = session.query(Usuario).all()
@@ -200,7 +224,7 @@ def login():
 
     if not email or not password:
         return jsonify({
-            "error": "El email y la contraseña son obligatorios"
+            "error": "Email y contraseña son obligatorios"
         }), 400
 
     usuario = session.query(Usuario).filter(
@@ -212,19 +236,48 @@ def login():
             "error": "Credenciales incorrectas"
         }), 401
 
-    if usuario.password != password:
+    if not check_password_hash(usuario.password, password):
         return jsonify({
             "error": "Credenciales incorrectas"
         }), 401
 
+    token = jwt.encode(
+    {
+        "id_usuario": usuario.id_usuario,
+        "email": usuario.email,
+        "rol": usuario.rol,
+        "exp": datetime.utcnow() + timedelta(hours=2)
+    },
+    JWT_SECRET_KEY,
+    algorithm="HS256"
+)
+
     return jsonify({
-        "message": "Inicio de sesión exitoso",
+    "message": "Inicio de sesión exitoso",
+    "access_token": token,
+    "usuario": {
+        "id_usuario": usuario.id_usuario,
+        "nombre": usuario.nombre,
+        "apellido": usuario.apellido,
+        "email": usuario.email,
+        "telefono": usuario.telefono,
+        "rol": usuario.rol
+    }
+}), 200
+
+@usuarios_bp.route("/perfil", methods=["GET"])
+@token_required
+def perfil():
+
+    usuario = request.usuario
+
+    return jsonify({
+        "message": "Token válido",
         "usuario": {
             "id_usuario": usuario.id_usuario,
             "nombre": usuario.nombre,
             "apellido": usuario.apellido,
             "email": usuario.email,
-            "telefono": usuario.telefono,
             "rol": usuario.rol
         }
     }), 200

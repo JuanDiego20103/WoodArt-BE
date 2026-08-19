@@ -1,11 +1,14 @@
 from flask import Blueprint, request, jsonify
 from src.models.productos import Producto
 from src.models import session
+from src.utils.auth import token_required, rol_required
 
 
 productos_bp = Blueprint("productos", __name__)
 
 @productos_bp.route("", methods=["POST"])
+@token_required
+@rol_required("admin")
 def crear_producto():
     data = request.get_json()
     nuevo_producto = Producto(
@@ -47,6 +50,8 @@ def obtener_producto(id_producto):
     }), 200
 
 @productos_bp.route("/<int:id_producto>", methods=["PUT"])
+@token_required
+@rol_required("admin")
 def actualizar_producto(id_producto):
     producto = session.query(Producto).filter(Producto.id_producto == id_producto).first()
 
@@ -69,6 +74,8 @@ def actualizar_producto(id_producto):
     return jsonify({"message": "Producto actualizado exitosamente", "id_producto": producto.id_producto}), 200
 
 @productos_bp.route("/<int:id_producto>", methods=["DELETE"])
+@token_required
+@rol_required("admin")
 def eliminar_producto(id_producto):
     producto = session.query(Producto).filter(Producto.id_producto == id_producto).first()
 

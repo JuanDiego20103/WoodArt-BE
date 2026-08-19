@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.models.imagen_productos import ImagenProducto
+from src.utils.auth import token_required, rol_required
 
 imagen_producto_bp = Blueprint("imagen_producto",__name__)
 
