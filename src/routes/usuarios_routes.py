@@ -7,6 +7,8 @@ import jwt
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from src.utils.auth import token_required, rol_required
+from src.utils.configuracion import obtener_valor
+from sqlalchemy import func
 
 load_dotenv()
 
@@ -30,6 +32,12 @@ def crear_usuario():
         return jsonify({
             "error": "No se recibieron datos"
         }), 400
+
+    # El administrador puede cerrar el registro desde el panel
+    if not obtener_valor("registro_abierto"):
+        return jsonify({
+            "error": "El registro de nuevos usuarios está deshabilitado temporalmente"
+        }), 403
 
     if not data.get("nombre"):
         return jsonify({
@@ -74,7 +82,9 @@ def crear_usuario():
     email=data["email"],
     telefono=data.get("telefono"),
     password=password_hash,
-    rol=data.get("rol", "cliente")
+    # Siempre "cliente": los administradores se crean con crear_admin.py
+    # o se promueven desde el panel de administración
+    rol="cliente"
 )
 
     session.add(nuevo_usuario)
@@ -227,8 +237,11 @@ def login():
             "error": "Email y contraseña son obligatorios"
         }), 400
 
+    # El correo no distingue mayúsculas ni espacios al inicio o al final
+    email = email.strip().lower()
+
     usuario = session.query(Usuario).filter(
-        Usuario.email == email
+        func.lower(Usuario.email) == email
     ).first()
 
     if not usuario:
@@ -280,4 +293,4 @@ def perfil():
             "email": usuario.email,
             "rol": usuario.rol
         }
-    }), 200
+    }), 200

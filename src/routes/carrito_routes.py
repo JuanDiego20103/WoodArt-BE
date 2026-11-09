@@ -26,13 +26,21 @@ def agregar_al_carrito():
             "error": "Producto no especificado"
         }), 400
 
-    nuevo_item = Carrito(
-        cantidad=cantidad,
-        id_usuario=id_usuario,
-        id_producto=id_producto
-    )
+    # Si el producto ya está en el carrito, solo se suma la cantidad
+    item = session.query(Carrito).filter(
+        Carrito.id_usuario == id_usuario,
+        Carrito.id_producto == id_producto
+    ).first()
 
-    session.add(nuevo_item)
+    if item:
+        item.cantidad = (item.cantidad or 0) + cantidad
+    else:
+        session.add(Carrito(
+            cantidad=cantidad,
+            id_usuario=id_usuario,
+            id_producto=id_producto
+        ))
+
     session.commit()
 
     return jsonify({
@@ -73,21 +81,27 @@ def obtener_carrito():
 
     return jsonify(carrito), 200
 
-@carrito_bp.route('/<int:id_producto>', methods=['DELETE'])
+@carrito_bp.route("/<int:id_carrito>", methods=["DELETE"])
 @token_required
-def eliminar_del_carrito(id_producto):
-    id_usuario = session.get('id_usuario')
-    
-    if not id_usuario:
-        return jsonify({'error': 'Usuario no autenticado'}), 401
-    
-    # Aquí deberías eliminar el item del carrito de la base de datos
-    # item = session.query(Carrito).filter_by(id_usuario=id_usuario, id_producto=id_producto).first()
-    # if item:
-    #     session.delete(item)
-    #     session.commit()
-    
-    return jsonify({'message': 'Producto eliminado del carrito'}), 200
+def eliminar_del_carrito(id_carrito):
+
+    # Solo se puede borrar un producto del carrito del usuario del token
+    item = session.query(Carrito).filter(
+        Carrito.id_carrito == id_carrito,
+        Carrito.id_usuario == request.usuario.id_usuario
+    ).first()
+
+    if not item:
+        return jsonify({
+            "error": "El producto no está en tu carrito"
+        }), 404
+
+    session.delete(item)
+    session.commit()
+
+    return jsonify({
+        "message": "Producto eliminado del carrito"
+    }), 200
 
 @carrito_bp.route('/<int:id_producto>', methods=['PUT'])
 @token_required
@@ -120,4 +134,4 @@ def obtener_total_carrito():
     # Simulación de respuesta
     total = 100.00
     
-    return jsonify({'total': total}), 200
+    return jsonify({'total': total}), 200

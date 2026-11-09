@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from sqlalchemy import func, or_
 from src.models.productos import Producto
 from src.models import session
 from src.utils.auth import token_required, rol_required
@@ -98,6 +99,9 @@ def listar_productos():
     # Categoría opcional
     id_categoria = request.args.get("id_categoria", type=int)
 
+    # Texto de búsqueda opcional
+    q = request.args.get("q", "").strip()
+
     # Evitar valores inválidos
     if page < 1:
         page = 1
@@ -113,6 +117,18 @@ def listar_productos():
         query = query.filter(
             Producto.id_categoria == id_categoria
         )
+
+    # Buscar en nombre, descripción, material y color.
+    # Cada palabra debe aparecer en alguno de esos campos.
+    if q:
+        for palabra in q.lower().split()[:5]:
+            patron = f"%{palabra}%"
+            query = query.filter(or_(
+                func.lower(Producto.nombre).like(patron),
+                func.lower(Producto.descripcion).like(patron),
+                func.lower(Producto.material).like(patron),
+                func.lower(Producto.color).like(patron)
+            ))
 
     # Cantidad total de productos
     total_productos = query.count()
@@ -151,5 +167,6 @@ def listar_productos():
         "pagina": page,
         "por_pagina": per_page,
         "total_productos": total_productos,
-        "total_paginas": total_paginas
-    }), 200
+        "total_paginas": total_paginas,
+        "busqueda": q
+    }), 200
