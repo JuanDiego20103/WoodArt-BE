@@ -29,6 +29,9 @@ CORS_ORIGINS = [
     "http://localhost:4200",
     "http://127.0.0.1:4200",
 ]
+# En producción se agregan los dominios del frontend desplegado,
+# separados por comas, en la variable CORS_ORIGINS.
+CORS_ORIGINS += [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
 
 Base.metadata.create_all(engine)
@@ -40,6 +43,12 @@ Base.metadata.create_all(engine)
 @app.teardown_appcontext
 def cerrar_sesion_bd(exception=None):
     session.close()
+
+# Ruta de verificación: Render y los navegadores pueden comprobar que la API responde.
+@app.route("/")
+def estado():
+    return {"servicio": "WoodArt API", "estado": "ok", "api": "/api/v1"}
+
 
 prefix="/api/v1"
 for bp in all_blueprints:
